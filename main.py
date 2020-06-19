@@ -97,13 +97,16 @@ async def download(sha256, config, chunk_size=1024):
 
     else:
         async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.gett(url, data=params) as response:
+            async with session.get(url, data=params) as response:
                 with open('%s/%s.apk' % (outdir, sha256), 'wb') as f:
                     while True:
                         chunk = await response.content.read(chunk_size)
                         if not chunk:
                             break
                         f.write(chunk)
+                logging.debug('[Success] %s' % sha256)
+                with open('%s.txt' % tag, 'a') as log:
+                    log.write('%s\n' % sha256)
 
 
 async def cordownload(batch, i, config):
