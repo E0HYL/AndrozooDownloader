@@ -13,7 +13,7 @@ import pandas as pd
 import argparse
 import logging
 import time
-import tqdm
+from tqdm import tqdm
 import asyncio
 import aiohttp
 from tenacity import retry
@@ -139,3 +139,6 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     tasks = [cordownload(batches[i].dropna(), i, config) for i in range(cornum)]
     loop.run_until_complete(asyncio.wait(tasks))
+
+
+    
