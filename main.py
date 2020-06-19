@@ -137,6 +137,9 @@ if __name__ == '__main__':
 
     cornum = args.coroutine
     apks = meta.sha256.to_list()
+    if args.coroutine > len(apks):
+        cornum = len(apks)
+    print('[AndrozooDownloader] %d apks for downloading task.' % len(apks))
     batches = []
     batches.extend([apks[i:i+cornum] for i in range(0, len(apks), cornum)])
     batches = pd.DataFrame(batches)
