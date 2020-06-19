@@ -37,7 +37,7 @@ if args.vt_detection == 0:
     cat = 'Benign'
     print('[AndrozooDownloader] Benign Samples.')
 else:
-    cat = 'Malware_%d' % args.vt_detection
+    cat = ('Malware_%d-%d' % (args.vt_detection, args.upper)) if args.upper else ('Malware_%d' % args.vt_detection)
     if args.upper:
         print('[AndrozooDownloader] Malware Samples (%d<=vt_detection<%d).' % (args.vt_detection, args.upper))
     else:
