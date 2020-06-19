@@ -13,6 +13,7 @@ import pandas as pd
 import argparse
 import logging
 import time
+from datetime import datetime
 from tqdm import tqdm
 import asyncio
 import aiohttp
@@ -33,8 +34,10 @@ year = args.year
 
 if args.vt_detection == 0:
     cat = 'Benign'
+    print('[AndrozooDownloader] Benign Samples.')
 else:
     cat = 'Malware_%d' % args.vt_detection
+    print('[AndrozooDownloader] Malware Samples (vt_detection=%d).' % args.vt_detection)
 outdir = '/%s/Androzoo/%s/%d' % (args.output, cat, year)
 if not os.path.exists(outdir):
     os.makedirs(outdir)
@@ -45,7 +48,8 @@ if args.reduce:
     level = logging.INFO
 else:
     level = logging.DEBUG
-logging.basicConfig(filename='%d_%d.log' % (year, timestamp), level=level, format=LOG_FORMAT)
+tag = '%d_%s_%d' % (year, cat, timestamp)
+logging.basicConfig(filename='%s.log' % tag, level=level, format=LOG_FORMAT)
 
 
 def read_config(fname='config'):
@@ -57,10 +61,11 @@ def read_config(fname='config'):
 def filter(year, a, processed):
     vt_detection = args.vt_detection
     a = a[a.vt_detection == vt_detection]
-    a.loc[:,'dex_date'] = pd.to_datetime(a['dex_date'])
-    a = a[(a.dex_date > pd.datetime(year,1,1)) & (a.dex_date < pd.datetime(year+1,1,1))]
+    date = pd.to_datetime(a['dex_date'])
+    a.loc[:, ('dex_date')] = date
+    a = a[(a.dex_date > datetime(year,1,1)) & (a.dex_date < datetime(year+1,1,1))]
 
-    print(args.markets)
+    print('[AndrozooDownloader] Selecting from markets: ', args.markets)
     pattern = ' | '.join(["(a.markets.str.contains('%s'))" % i for i in args.markets])
     # (a.markets.str.contains('play.google.com')) | (a.markets.str.contains('anzhi')) | (a.markets.str.contains('anzhi'))
     a = a[eval(pattern)]
@@ -88,7 +93,7 @@ async def download(sha256, config, chunk_size=1024):
                             break
                         f.write(chunk)
                 logging.debug('[Success] %s' % sha256)
-                with open('%d_%d.txt' % (year, timestamp), 'a') as log:
+                with open('%s.txt' % tag, 'a') as log:
                     log.write('%s\n' % sha256)
 
     else:
@@ -128,6 +133,7 @@ if __name__ == '__main__':
     if args.max:
         if len(meta) > args.max:
             logging.info('[Sample] %d apks for downloading task.' % args.max)
+            print('[AndrozooDownloader] %d apks for downloading task.' % args.max)
             meta = meta.sample(args.max)
 
     cornum = args.coroutine
@@ -139,6 +145,3 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     tasks = [cordownload(batches[i].dropna(), i, config) for i in range(cornum)]
     loop.run_until_complete(asyncio.wait(tasks))
-
-
-    

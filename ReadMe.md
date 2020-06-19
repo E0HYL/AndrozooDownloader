@@ -8,6 +8,8 @@
 
 另外，脚本通过[获取流式响应](https://hubertroy.gitbooks.io/aiohttp-chinese-documentation/content/aiohttp%E6%96%87%E6%A1%A3/ClientUsage.html#%E4%BD%BF%E7%94%A8WebSockets)节省内存，会在错误处重试，生成充足的日志记录（`.log`文件是日志，`.txt`是已下载apk的实时记录）；可以设置每个年份的下载数量上限，以及应用商店的过滤（默认'play.google.com', 'anzhi', 'appchina'，论文中称这三个为Main Markets），更多参数见[文末](#Optional parameters)。
 
+<img src='./run.PNG'></img>
+
 下面我就用英文写了噢QAQ
 
 ### Get Started
