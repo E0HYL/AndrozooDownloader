@@ -59,8 +59,7 @@ def read_config(fname='config'):
 
 
 def filter(year, a, processed):
-    vt_detection = args.vt_detection
-    a = a[a.vt_detection == vt_detection]
+    a = a[a.vt_detection == args.vt_detection]
     date = pd.to_datetime(a['dex_date'])
     a.loc[:, ('dex_date')] = date
     a = a[(a.dex_date > datetime(year,1,1)) & (a.dex_date < datetime(year+1,1,1))]
