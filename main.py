@@ -13,6 +13,7 @@ import pandas as pd
 import argparse
 import logging
 import time
+import tqdm
 import asyncio
 import aiohttp
 from tenacity import retry
@@ -25,6 +26,7 @@ parser.add_argument('--coroutine', type=int, default=20, help='Number of corouti
 parser.add_argument('--markets', nargs='+', default=['play.google.com', 'anzhi', 'appchina'], help='Number of coroutines.')
 parser.add_argument('--vt_detection', type=int, default=0, help='Download Benign apks by default. Save in `Malware` dir if greater than 0')
 parser.add_argument('--output', type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware>/<year>.')
+parser.add_argument('--reduce', type=bool, default=False, help='Logging level: DEBUG by default (log for every apk), INFO if True.')
 
 args = parser.parse_args()
 year = args.year
@@ -32,14 +34,18 @@ year = args.year
 if args.vt_detection == 0:
     cat = 'Benign'
 else:
-    cat = 'Malware'
+    cat = 'Malware_%d' % args.vt_detection
 outdir = '/%s/Androzoo/%s/%d' % (args.output, cat, year)
 if not os.path.exists(outdir):
     os.makedirs(outdir)
 
 timestamp = int(round(time.time() * 1000))
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
-logging.basicConfig(filename='%d_%d.log' % (year, timestamp), level=logging.DEBUG, format=LOG_FORMAT)
+if args.reduce:
+    level = logging.INFO
+else:
+    level = logging.DEBUG
+logging.basicConfig(filename='%d_%d.log' % (year, timestamp), level=level, format=LOG_FORMAT)
 
 
 def read_config(fname='config'):
@@ -49,8 +55,9 @@ def read_config(fname='config'):
 
 
 def filter(year, a, processed):
+    vt_detection = args.vt_detection
     a = a[a.vt_detection == vt_detection]
-    a['dex_date'] = pd.to_datetime(a['dex_date'])
+    a.loc[:,'dex_date'] = pd.to_datetime(a['dex_date'])
     a = a[(a.dex_date > pd.datetime(year,1,1)) & (a.dex_date < pd.datetime(year+1,1,1))]
 
     print(args.markets)
@@ -71,7 +78,7 @@ async def download(sha256, config, chunk_size=1024):
         port = config['port']
         proxy = "http://%s:%d" % (ip, port)
 
-        # logging.info('Requesting %s...' % sha256)
+        # logging.debug('Requesting %s...' % sha256)
         async with aiohttp.ClientSession(raise_for_status=True) as session:
             async with session.get(url, data=params, proxy=proxy) as response:
                 with open('%s/%s.apk' % (outdir, sha256), 'wb') as f:
@@ -80,7 +87,7 @@ async def download(sha256, config, chunk_size=1024):
                         if not chunk:
                             break
                         f.write(chunk)
-                logging.info('[Success] %s' % sha256)
+                logging.debug('[Success] %s' % sha256)
                 with open('%d_%d.txt' % (year, timestamp), 'a') as log:
                     log.write('%s\n' % sha256)
 
@@ -97,9 +104,9 @@ async def download(sha256, config, chunk_size=1024):
 
 async def cordownload(batch, i, config):
     logging.info('No.%d coroutine: downloading %d apks...' % (i, len(batch)))
-    for sha256 in batch:
+    for sha256 in tqdm(batch, desc='[Coroutine %d]' % i):
         # print('No.%d coroutine' % i)
-        logging.info('[Start] No.%d coroutine: %s' % (i, sha256))
+        logging.debug('[Start] No.%d coroutine: %s' % (i, sha256))
         await download(sha256, config)
 
 if __name__ == '__main__':
@@ -132,6 +139,3 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     tasks = [cordownload(batches[i].dropna(), i, config) for i in range(cornum)]
     loop.run_until_complete(asyncio.wait(tasks))
-
-
-    

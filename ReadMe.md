@@ -3,10 +3,10 @@
 主要需求是按年份和 VirusTotal 扫描结果来下载良性/恶意样本，支持：
 
 - 代理（`config`文件中指定http代理的IP和端口）
-- 协程（设置`--coroutine`为协程数量，默认20个，参考`Feel free to use up to ~20 concurrent downloads (40 if you're outside Europe)`）
+- 协程（设置`--coroutine`为协程数量，默认20个，参考`Feel free to use up to ~20 concurrent downloads (40 if you're outside Europe)`），且每个协程提供进度条
 - 断点处继续（设置`--update`为True）
 
-另外，脚本会在错误处重试，生成充足的日志记录；可以设置每个年份的下载数量上限，以及应用商店的过滤（默认'play.google.com', 'anzhi', 'appchina'，论文中称这三个为Main Markets），更多参数见[文末](#Optional parameters)。
+另外，脚本通过[获取流式响应](https://hubertroy.gitbooks.io/aiohttp-chinese-documentation/content/aiohttp%E6%96%87%E6%A1%A3/ClientUsage.html#%E4%BD%BF%E7%94%A8WebSockets)节省内存，会在错误处重试，生成充足的日志记录（`.log`文件是日志，`.txt`是已下载apk的实时记录）；可以设置每个年份的下载数量上限，以及应用商店的过滤（默认'play.google.com', 'anzhi', 'appchina'，论文中称这三个为Main Markets），更多参数见[文末](#Optional parameters)。
 
 下面我就用英文写了噢QAQ
 
@@ -74,4 +74,5 @@ $ python main.py 2019
 '--markets': nargs='+', default=['play.google.com', 'anzhi', 'appchina'], help='Number of coroutines.'
 '--vt_detection': type=int, default=0, help='Filter VirusTotal result, 0 by default. This results in the output: `Benign` for 0, `Malware` for others.'
 '--output': type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware>/<year>.'
+'--reduce', type=bool, default=False, help='Logging level: DEBUG by default (log process for every apk), INFO if True.'
 ```
