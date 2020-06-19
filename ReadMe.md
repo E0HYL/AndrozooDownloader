@@ -74,7 +74,8 @@ $ python main.py 2019
 '--max': type=int, default=104000, help='Max number of apks to download.'
 '--coroutine': type=int, default=20, help='Number of coroutines.'
 '--markets': nargs='+', default=['play.google.com', 'anzhi', 'appchina'], help='Number of coroutines.'
-'--vt_detection': type=int, default=0, help='Filter VirusTotal result, 0 by default. This results in the output: `Benign` for 0, `Malware` for others.'
+'--vt_detection': type=int, default=0, help='Download Benign apks by default. Lower bound (included) of `Malware` if greater than 0.'
+'--upper': type=int, help='Upper bound (not included) for `Malware`. Useful only if vt_detection is greater than 0.'
 '--output': type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware>/<year>.'
 '--reduce', type=bool, default=False, help='Logging level: DEBUG by default (log process for every apk), INFO if True.'
 ```

@@ -25,8 +25,9 @@ parser.add_argument('--update', type=bool, default=False, help='Ignore the downl
 parser.add_argument('--max', type=int, default=104000, help='Max number of apks to download.')
 parser.add_argument('--coroutine', type=int, default=20, help='Number of coroutines.')
 parser.add_argument('--markets', nargs='+', default=['play.google.com', 'anzhi', 'appchina'], help='Number of coroutines.')
-parser.add_argument('--vt_detection', type=int, default=0, help='Download Benign apks by default. Save in `Malware` dir if greater than 0')
-parser.add_argument('--output', type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware>/<year>.')
+parser.add_argument('--vt_detection', type=int, default=0, help='Download Benign apks by default. Lower bound (included) of `Malware` if greater than 0.')
+parser.add_argument('--upper', type=int, help='Upper bound (not included) for `Malware`. Useful only if vt_detection is greater than 0.')
+parser.add_argument('--output', type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware_LB>/<year>.')
 parser.add_argument('--reduce', type=bool, default=False, help='Logging level: DEBUG by default (log for every apk), INFO if True.')
 
 args = parser.parse_args()
@@ -37,7 +38,10 @@ if args.vt_detection == 0:
     print('[AndrozooDownloader] Benign Samples.')
 else:
     cat = 'Malware_%d' % args.vt_detection
-    print('[AndrozooDownloader] Malware Samples (vt_detection=%d).' % args.vt_detection)
+    if args.upper:
+        print('[AndrozooDownloader] Malware Samples (%d<=vt_detection<%d).' % (args.vt_detection, args.upper))
+    else:
+        print('[AndrozooDownloader] Malware Samples (vt_detection>=%d).' % args.vt_detection)
 outdir = '/%s/Androzoo/%s/%d' % (args.output, cat, year)
 if not os.path.exists(outdir):
     os.makedirs(outdir)
@@ -59,7 +63,12 @@ def read_config(fname='config'):
 
 
 def filter(year, a, processed):
-    a = a[a.vt_detection == args.vt_detection]
+    if cat == 'Benign':
+        a = a[a.vt_detection == 0]
+    else:
+        a = a[a.vt_detection >= args.vt_detection]
+        if args.upper:
+            a = a[a.vt_detection < args.upper]
     date = pd.to_datetime(a['dex_date'])
     a = a.assign(dex_date=date)
     a = a[(a.dex_date > datetime(year,1,1)) & (a.dex_date < datetime(year+1,1,1))]
