@@ -81,10 +81,10 @@ def filter(year, a, processed):
     a.to_csv(processed, index=False)
     return a
 
-@retry
-async def download(sha256, config, chunk_size=1024):
-    params = {'apikey': config['key'],'sha256': sha256}
-    url = 'https://androzoo.uni.lu/api/download'
+# @retry
+async def download(sha256, config, session, chunk_size=1024):
+    base_url = 'https://androzoo.uni.lu/api/download?apikey={0}&sha256={01}'
+    url = base_url.format(config['key'], sha256)
 
     if 'proxy' in config.keys():
         ip = config['proxy']
@@ -92,38 +92,38 @@ async def download(sha256, config, chunk_size=1024):
         proxy = "http://%s:%d" % (ip, port)
 
         # logging.debug('Requesting %s...' % sha256)
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.get(url, data=params, proxy=proxy) as response:
-                with open('%s/%s.apk' % (outdir, sha256), 'wb') as f:
-                    while True:
-                        chunk = await response.content.read(chunk_size)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                logging.debug('[Success] %s' % sha256)
-                with open('%s.txt' % tag, 'a') as log:
-                    log.write('%s\n' % sha256)
+        async with session.get(url, proxy=proxy, timeout=None) as response:
+            with open('%s/%s.apk' % (outdir, sha256), 'wb') as f:
+                while True:
+                    chunk = await response.content.read(chunk_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    print(os.path.getsize('%s/%s.apk' % (outdir, sha256)))
+            logging.debug('[Success] %s' % sha256)
+            with open('%s.txt' % tag, 'a') as log:
+                log.write('%s\n' % sha256)
 
     else:
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.get(url, data=params) as response:
-                with open('%s/%s.apk' % (outdir, sha256), 'wb') as f:
-                    while True:
-                        chunk = await response.content.read(chunk_size)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                logging.debug('[Success] %s' % sha256)
-                with open('%s.txt' % tag, 'a') as log:
-                    log.write('%s\n' % sha256)
+        async with session.get(url) as response:
+            with open('%s/%s.apk' % (outdir, sha256), 'wb') as f:
+                while True:
+                    chunk = await response.content.read(chunk_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+            logging.debug('[Success] %s' % sha256)
+            with open('%s.txt' % tag, 'a') as log:
+                log.write('%s\n' % sha256)
 
 
 async def cordownload(batch, i, config):
     logging.info('No.%d coroutine: downloading %d apks...' % (i, len(batch)))
-    for sha256 in tqdm(batch, desc='[Coroutine %d]' % i):
-        # print('No.%d coroutine' % i)
-        logging.debug('[Start] No.%d coroutine: %s' % (i, sha256))
-        await download(sha256, config)
+    async with aiohttp.ClientSession(raise_for_status=True) as session:
+        for sha256 in tqdm(batch, desc='[Coroutine %d]' % i):
+            # print('No.%d coroutine' % i)
+            logging.debug('[Start] No.%d coroutine: %s' % (i, sha256))
+            await download(sha256, config, session)
 
 if __name__ == '__main__':
     config = read_config()
@@ -151,6 +151,7 @@ if __name__ == '__main__':
     apks = meta.sha256.to_list()
     if args.coroutine > len(apks):
         cornum = len(apks)
+        print('[AndrozooDownloader] Using %d coroutines.' % cornum)
     print('[AndrozooDownloader] %d apks for downloading task.' % len(apks))
     batches = []
     batches.extend([apks[i:i+cornum] for i in range(0, len(apks), cornum)])
