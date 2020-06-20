@@ -17,7 +17,7 @@ from datetime import datetime
 from tqdm import tqdm
 import asyncio
 import aiohttp
-from tenacity import retry
+from tenacity import retry, stop_after_attempt, before_log
 
 parser = argparse.ArgumentParser(description='Androzoo downloader script.')
 parser.add_argument('year', type=int, help='Choose a specific year.')
@@ -81,7 +81,7 @@ def filter(year, a, processed):
     a.to_csv(processed, index=False)
     return a
 
-# @retry
+@retry(stop=stop_after_attempt(3), before=before_log(logging.getLogger(), logging.DEBUG))
 async def download(sha256, config, session, chunk_size=1024):
     base_url = 'https://androzoo.uni.lu/api/download?apikey={0}&sha256={01}'
     url = base_url.format(config['key'], sha256)
@@ -99,7 +99,6 @@ async def download(sha256, config, session, chunk_size=1024):
                     if not chunk:
                         break
                     f.write(chunk)
-                    print(os.path.getsize('%s/%s.apk' % (outdir, sha256)))
             logging.debug('[Success] %s' % sha256)
             with open('%s.txt' % tag, 'a') as log:
                 log.write('%s\n' % sha256)
