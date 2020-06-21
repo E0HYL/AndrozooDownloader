@@ -8,6 +8,7 @@
 '''
 
 import os
+import sys
 import json
 import pandas as pd
 import argparse
@@ -28,7 +29,7 @@ parser.add_argument('--markets', nargs='+', default=['play.google.com', 'anzhi',
 parser.add_argument('--vt_detection', type=int, default=0, help='Download Benign apks by default. Lower bound (included) of `Malware` if greater than 0.')
 parser.add_argument('--upper', type=int, help='Upper bound (not included) for `Malware`. Useful only if vt_detection is greater than 0.')
 parser.add_argument('--output', type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware_LB>/<year>.')
-parser.add_argument('--reduce', type=bool, default=False, help='Logging level: DEBUG by default (log for every apk), INFO if True.')
+parser.add_argument('--debug', type=bool, default=False, help='Logging level: INFO by default, DEBUG will log for every apk in both stdout and file.')
 
 args = parser.parse_args()
 year = args.year
@@ -47,13 +48,25 @@ if not os.path.exists(outdir):
     os.makedirs(outdir)
 
 timestamp = int(round(time.time() * 1000))
-LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
-if args.reduce:
-    level = logging.INFO
-else:
-    level = logging.DEBUG
 tag = '%d_%s_%d' % (year, cat, timestamp)
-logging.basicConfig(filename='%s.log' % tag, level=level, format=LOG_FORMAT)
+log_file = '%s.log' % tag
+LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
+fmt = logging.Formatter(LOG_FORMAT)
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+if not args.debug:
+    filelog_level = logging.INFO
+else:
+    filelog_level = logging.DEBUG
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(fmt)
+    logger.addHandler(stream_handler)
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(filelog_level)
+file_handler.setFormatter(fmt)
+logger.addHandler(file_handler)
 
 
 def read_config(fname='config'):
@@ -147,14 +160,17 @@ if __name__ == '__main__':
 
     cornum = args.coroutine
     apks = meta.sha256.to_list()
-    if args.coroutine > len(apks):
-        cornum = len(apks)
-        print('[AndrozooDownloader] Using %d coroutines.' % cornum)
-    print('[AndrozooDownloader] %d apks for downloading task.' % len(apks))
-    batches = []
-    batches.extend([apks[i:i+cornum] for i in range(0, len(apks), cornum)])
-    batches = pd.DataFrame(batches)
-    
-    loop = asyncio.get_event_loop()
-    tasks = [cordownload(batches[i].dropna(), i, config) for i in range(cornum)]
-    loop.run_until_complete(asyncio.wait(tasks))
+    if len(apks) == 0:
+        print('[AndrozooDownloader] No apk satisfied.')
+    else:
+        if args.coroutine > len(apks):
+            cornum = len(apks)
+            print('[AndrozooDownloader] Using %d coroutines.' % cornum)
+        print('[AndrozooDownloader] %d apks for downloading task.' % len(apks))
+        batches = []
+        batches.extend([apks[i:i+cornum] for i in range(0, len(apks), cornum)])
+        batches = pd.DataFrame(batches)
+        
+        loop = asyncio.get_event_loop()
+        tasks = [cordownload(batches[i].dropna(), i, config) for i in range(cornum)]
+        loop.run_until_complete(asyncio.wait(tasks))
