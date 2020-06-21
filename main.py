@@ -143,7 +143,6 @@ if __name__ == '__main__':
     if args.max:
         if len(meta) > args.max:
             logging.info('[Sample] %d apks for downloading task.' % args.max)
-            print('[AndrozooDownloader] %d apks for downloading task.' % args.max)
             meta = meta.sample(args.max)
 
     cornum = args.coroutine
