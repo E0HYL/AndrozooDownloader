@@ -77,5 +77,5 @@ $ python main.py 2019
 '--vt_detection': type=int, default=0, help='Download Benign apks by default. Lower bound (included) of `Malware` if greater than 0.'
 '--upper': type=int, help='Upper bound (not included) for `Malware`. Useful only if vt_detection is greater than 0.'
 '--output': type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware>/<year>.'
-'--reduce', type=bool, default=False, help='Logging level: DEBUG by default (log process for every apk), INFO if True.'
+'--debug': type=bool, default=False, help='Logging level: INFO by default, DEBUG will log for every apk in both stdout and file.'
 ```
