@@ -144,18 +144,30 @@ if __name__ == '__main__':
     if not os.path.exists(processed):
         meta = pd.read_csv(config['meta'])
         meta = filter(year, meta, processed)
-        if args.update:
-            import glob
-            exist = glob.glob('%s_*.txt')
-            df = pd.DataFrame()
-            for i in exist:
-                df = df.append(pd.read_csv(i, header=None))
-            meta = meta[~meta.sha256.isin(df[0].to_list())]
     else:
         meta = pd.read_csv(processed)
+    if args.update:
+        import glob
+        exist = glob.glob('%d_*.txt' % year)
+        df = pd.DataFrame()
+        for i in exist:
+            df = df.append(pd.read_csv(i, header=None))
+        meta = meta[~meta.sha256.isin(df[0].to_list())]
+
+        broken = pd.DataFrame([i.split('/')[-1][:-4] for i in glob.glob('%s/*.apk'%outdir)])
+        broken = broken[~broken[0].isin(df[0])]
+        for b in broken[0]:
+            os.remove('%s/%s.apk' % (outdir, b))
+            logging.info('[Remove] BROKEN %s/%s.apk' % (outdir, b))
+            print('[AndrozooDownloader] Removing broken %s/%s.apk' % (outdir, b))
+
+        logging.info('[Update] %d already exist. Continue downloading %d apks.' % (len(df), len(meta)))
+        print('[AndrozooDownloader] %d already exist. %d remained.' % (len(df), len(meta)))
+    
     if args.max:
         if len(meta) > args.max:
             logging.info('[Sample] %d apks for downloading task.' % args.max)
+            print('[AndrozooDownloader] Sample %d apks.' % args.max)
             meta = meta.sample(args.max)
 
     cornum = args.coroutine
