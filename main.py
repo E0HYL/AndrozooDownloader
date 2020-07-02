@@ -30,6 +30,7 @@ parser.add_argument('--vt_detection', type=int, default=0, help='Download Benign
 parser.add_argument('--upper', type=int, help='Upper bound (not included) for `Malware`. Useful only if vt_detection is greater than 0.')
 parser.add_argument('--output', type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware_LB>/<year>.')
 parser.add_argument('--debug', type=bool, default=False, help='Logging level: INFO by default, DEBUG will log for every apk in both stdout and file.')
+parser.add_argument('--fix', type=bool, default=False, help='Just remove the broken apks since last stop.')
 
 args = parser.parse_args()
 year = args.year
@@ -146,9 +147,9 @@ if __name__ == '__main__':
         meta = filter(year, meta, processed)
     else:
         meta = pd.read_csv(processed)
-    if args.update:
+    if args.update or args.fix:
         import glob
-        exist = glob.glob('%d_*.txt' % year)
+        exist = glob.glob('%d_%s_*.txt' % (year, cat))
         df = pd.DataFrame()
         for i in exist:
             df = df.append(pd.read_csv(i, header=None))
@@ -160,6 +161,9 @@ if __name__ == '__main__':
             os.remove('%s/%s.apk' % (outdir, b))
             logging.info('[Remove] BROKEN %s/%s.apk' % (outdir, b))
             print('[AndrozooDownloader] Removing broken %s/%s.apk' % (outdir, b))
+
+        if args.fix:
+            os._exit(0)
 
         logging.info('[Update] %d already exist. Continue downloading %d apks.' % (len(df), len(meta)))
         print('[AndrozooDownloader] %d already exist. %d remained.' % (len(df), len(meta)))
