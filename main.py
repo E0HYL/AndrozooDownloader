@@ -31,6 +31,7 @@ parser.add_argument('--upper', type=int, help='Upper bound (not included) for `M
 parser.add_argument('--output', type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware_LB>/<year>.')
 parser.add_argument('--debug', type=bool, default=False, help='Logging level: INFO by default, DEBUG will log for every apk in both stdout and file.')
 parser.add_argument('--fix', type=bool, default=False, help='Just remove the broken apks since last stop.')
+parser.add_argument('--config', type=str, default='config', help='Sepecify the name for config file.')
 
 args = parser.parse_args()
 year = args.year
@@ -139,7 +140,7 @@ async def cordownload(batch, i, config):
             await download(sha256, config, session)
 
 if __name__ == '__main__':
-    config = read_config()
+    config = read_config(args.config)
 
     processed = '%d_%s.csv' % (year, cat)
     if not os.path.exists(processed):

@@ -78,4 +78,6 @@ $ python main.py 2019
 '--upper': type=int, help='Upper bound (not included) for `Malware`. Useful only if vt_detection is greater than 0.'
 '--output': type=str, default='data1', help='Save apks in /<output>/Androzoo/<Benign or Malware>/<year>.'
 '--debug': type=bool, default=False, help='Logging level: INFO by default, DEBUG will log for every apk in both stdout and file.'
+'--fix', type=bool, default=False, help='Just remove the broken apks since last stop.'
+'--config', type=str, default='config', help='Sepecify the name for config file.'
 ```
