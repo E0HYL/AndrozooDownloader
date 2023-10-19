@@ -96,6 +96,7 @@ def filter(year, a, processed):
     a.to_csv(processed, index=False)
     return a
 
+
 @retry(stop=stop_after_attempt(3), before=before_log(logging.getLogger(), logging.DEBUG))
 async def download(sha256, config, session, chunk_size=1024):
     base_url = 'https://androzoo.uni.lu/api/download?apikey={0}&sha256={01}'
@@ -131,13 +132,22 @@ async def download(sha256, config, session, chunk_size=1024):
                 log.write('%s\n' % sha256)
 
 
+# Define a semaphore to control concurrency: restricts the number of simultaneous network requests
+semaphore = asyncio.Semaphore(10)
 async def cordownload(batch, i, config):
     logging.info('No.%d coroutine: downloading %d apks...' % (i, len(batch)))
     async with aiohttp.ClientSession(raise_for_status=True) as session:
         for sha256 in tqdm(batch, desc='[Coroutine %d]' % i):
             # print('No.%d coroutine' % i)
-            logging.debug('[Start] No.%d coroutine: %s' % (i, sha256))
-            await download(sha256, config, session)
+            try:
+                await asyncio.sleep(0.1) # a small delay, allowing other coroutines to start and spread out the work more evenly
+                # Using the semaphore to limit concurrency
+                async with semaphore:
+                    logging.debug(f'[Start] No.{i} coroutine: {sha256}')
+                    await download(sha256, config, session)
+            except Exception as e:
+                logging.error(f"Error downloading {sha256}: {str(e)}")
+
 
 if __name__ == '__main__':
     config = read_config(args.config)
